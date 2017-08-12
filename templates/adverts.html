@@ -41,14 +41,19 @@
 		</div>
 		<div class="col-md-1"></div>
 	</div>
+	<p><h3>Logged in as {{user_name_session}}. ID: {{user_id_session}}</h3></p>
+	<br>
 	{% for advert in adverts %}
-		<p>{{advert.name}}</p>
+		<p>Propoal {{advert.id}}: {{advert.name}}</p>
 		<p>{{advert.meal_type}}</p>
 		<p>{{advert.address}}</p>
 		<p>{{advert.meal_time}}</p>
-		<p>{{advert.creator.name}}</p>
+		<p>{{advert.creator}}, ID: {{user_id_session}}</p>
+		{% if advert.user_id == user_id_session %}
+			<p>You are authorized to: </p>
+			<p><a href="{{url_for('editAdvert', advert_id = advert.id)}}" > Manage Proposal </a></p>
+			<p><a href="{{url_for('deleteAdvert', advert_id = advert.id)}}" > Delete Proposal </a></p>
+		{% endif%}
 
-		<a href="{{url_for('editAdvert', advert_id = advert.id)}}" > <h3> Manage Proposal </h3> </a>
-		<a href="{{url_for('deleteAdvert', advert_id = advert.id)}}" > <h3> Delete Proposal </h3> </a>
 	{% endfor %}
 {% endblock %}

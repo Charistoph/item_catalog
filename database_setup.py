@@ -30,8 +30,8 @@ class Advert(Base):
     meal_time = Column(String(250))
     user_id = Column(Integer, ForeignKey('user.id'))
     user = relationship(User)
-    creator = relationship(User)
-    attendee = relationship(User)
+    creator = Column(String(250))
+    attendee = Column(String(250))
 
     @property
     def serialize(self):

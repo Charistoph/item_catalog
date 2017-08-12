@@ -203,10 +203,10 @@ def gdisconnect():
 @app.route('/advert/')
 def showAdverts():
     adverts = session.query(Advert).order_by(asc(Advert.name))
-#    if 'username' not in login_session:
-#        return render_template('publicadverts.html', adverts=adverts)
-#    else:
-    return render_template('adverts.html', adverts=adverts)
+    if 'username' not in login_session:
+        return render_template('publicadverts.html', adverts=adverts)
+    else:
+        return render_template('adverts.html', adverts=adverts, user_id_session=login_session['user_id'], user_name_session=login_session['username'])
 
 # Create a new advert
 
@@ -224,7 +224,7 @@ def newAdvert():
 #    meal_time = request.args.get('meal_time', '')
         advert_info = findARestaurant(newAdvert.meal_type, newAdvert.location)
         if advert_info != "No Restaurants Found":
-            newAdvert = Advert(address = unicode(advert_info['address']), name = unicode(advert_info['name']), meal_type = newAdvert.meal_type, meal_time = newAdvert.meal_time)
+            newAdvert = Advert(address = unicode(advert_info['address']), name = unicode(advert_info['name']), meal_type = newAdvert.meal_type, meal_time = newAdvert.meal_time, user_id = login_session['user_id'], creator = login_session['username'])
             session.add(newAdvert)
             flash('New Proposal %s Successfully Created' % newAdvert.name)
             session.commit()
