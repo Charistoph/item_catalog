@@ -1,17 +1,21 @@
 # -*- coding: utf-8 -*-
 from flask import Flask, render_template, request, redirect, jsonify, url_for, flash
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine, asc
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import relationship, sessionmaker
+from findARestaurant import findARestaurant
 from database_setup import Base, Advert, User
 from flask import session as login_session
-import random
-import string
+import random, string, sys, codecs
 from oauth2client.client import flow_from_clientsecrets
 from oauth2client.client import FlowExchangeError
 import httplib2
 import json
 from flask import make_response
 import requests
+from redis import Redis
+import time
+from functools import update_wrapper
 
 app = Flask(__name__)
 
@@ -341,3 +345,5 @@ if __name__ == '__main__':
     app.secret_key = 'super_secret_key'
     app.debug = True
     app.run(host='0.0.0.0', port=5000)
+# Test APIs
+#    findARestaurant("Pizza", "Tokyo, Japan")
