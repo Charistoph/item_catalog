@@ -203,10 +203,10 @@ def gdisconnect():
 @app.route('/advert/')
 def showAdverts():
     adverts = session.query(Advert).order_by(asc(Advert.name))
-    if 'username' not in login_session:
-        return render_template('publicadverts.html', adverts=adverts)
-    else:
-        return render_template('adverts.html', adverts=adverts)
+#    if 'username' not in login_session:
+#        return render_template('publicadverts.html', adverts=adverts)
+#    else:
+    return render_template('adverts.html', adverts=adverts)
 
 # Create a new advert
 
@@ -216,12 +216,19 @@ def newAdvert():
     if 'username' not in login_session:
         return redirect('/login')
     if request.method == 'POST':
-        newAdvert = Advert(
-            name=request.form['name'], user_id=login_session['user_id'])
-        session.add(newAdvert)
-        flash('New Proposal %s Successfully Created' % newAdvert.name)
-        session.commit()
-        return redirect(url_for('showAdverts'))
+#        newAdvert = Advert(
+#            name=request.form['name'], user_id=login_session['user_id'])
+        newAdvert = Advert(location=request.form['location'], meal_type=request.form['meal_type'], meal_time=request.form['meal_time'])
+#    location = request.args.get('location', '')
+#    meal_type = request.args.get('meal_type', '')
+#    meal_time = request.args.get('meal_time', '')
+        advert_info = findARestaurant(newAdvert.meal_type, newAdvert.location)
+        if advert_info != "No Restaurants Found":
+            newAdvert = Advert(address = unicode(advert_info['address']), name = unicode(advert_info['name']), meal_type = newAdvert.meal_type, meal_time = newAdvert.meal_time)
+            session.add(newAdvert)
+            flash('New Proposal %s Successfully Created' % newAdvert.name)
+            session.commit()
+            return redirect(url_for('showAdverts'))
     else:
         return render_template('newAdvert.html')
 
