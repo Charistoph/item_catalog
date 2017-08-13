@@ -224,7 +224,7 @@ def newAdvert():
 #    meal_time = request.args.get('meal_time', '')
         advert_info = findARestaurant(newAdvert.meal_type, newAdvert.location)
         if advert_info != "No Restaurants Found":
-            newAdvert = Advert(address = unicode(advert_info['address']), name = unicode(advert_info['name']), meal_type = newAdvert.meal_type, meal_time = newAdvert.meal_time, user_id = login_session['user_id'], creator = login_session['username'])
+            newAdvert = Advert(address = unicode(advert_info['address']), name = unicode(advert_info['name']), meal_type = newAdvert.meal_type, meal_time = newAdvert.meal_time, user_id = login_session['user_id'], creator = login_session['username'], attendee = "None yet!", accept_attendee = "No")
             session.add(newAdvert)
             flash('New Proposal %s Successfully Created' % newAdvert.name)
             session.commit()
@@ -233,7 +233,6 @@ def newAdvert():
         return render_template('newAdvert.html')
 
 # Edit a advert
-# No need to edit
 @app.route('/advert/<int:advert_id>/edit/', methods=['GET', 'POST'])
 def editAdvert(advert_id):
     editedAdvert = session.query(
@@ -280,6 +279,50 @@ def deleteAdvert(advert_id):
         return redirect(url_for('showAdverts', advert_id=advert_id))
     else:
         return render_template('deleteAdvert.html', advert=advertToDelete)
+
+
+# Join a advert
+@app.route('/advert/<int:advert_id>/join/', methods=['GET', 'POST'])
+def joinAdvert(advert_id):
+    editedAdvert = session.query(
+        Advert).filter_by(id=advert_id).one()
+    deleteAdvert = session.query(
+        Advert).filter_by(id=advert_id).one()
+    if 'username' not in login_session:
+        return redirect('/login')
+    # not really needed, just for safety.
+    if editedAdvert.user_id != login_session['user_id']:
+        return "<script>function myFunction() {alert('You cannot join your own proposal');}</script><body onload='myFunction()''>"
+    if request.method == 'POST':
+        editedAdvert.attendee = login_session['username']
+        session.add(editedAdvert)
+        session.commit()
+        flash('Advert Successfully Edited')
+        return redirect(url_for('showAdverts'))
+    else:
+        return render_template('joinAdvert.html', advert=editedAdvert)
+
+
+# Accept a join proposal
+@app.route('/advert/<int:advert_id>/accept/', methods=['GET', 'POST'])
+def acceptAdvert(advert_id):
+    editedAdvert = session.query(
+        Advert).filter_by(id=advert_id).one()
+    deleteAdvert = session.query(
+        Advert).filter_by(id=advert_id).one()
+    if 'username' not in login_session:
+        return redirect('/login')
+    # not really needed, just for safety.
+    if editedAdvert.user_id != login_session['user_id']:
+        return "<script>function myFunction() {alert('You cannot join your own proposal');}</script><body onload='myFunction()''>"
+    if request.method == 'POST':
+        editedAdvert.accept_attendee = "Yes"
+        session.add(editedAdvert)
+        session.commit()
+        flash('Advert Successfully Accepted')
+        return redirect(url_for('showAdverts'))
+    else:
+        return render_template('joinAdvert.html', advert=editedAdvert)
 
 
 #-------------------------------------------------------------------------------

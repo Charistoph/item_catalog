@@ -42,10 +42,19 @@
 	<p><h3>You are not logged in.</h3></h3></p>
 	<br>
 	{% for advert in adverts %}
-		<p>Propoal {{advert.id}}: {{advert.name}}</p>
-		<p>{{advert.meal_type}}</p>
-		<p>{{advert.address}}</p>
-		<p>{{advert.meal_time}}</p>
-		<p>{{advert.creator}}, ID: {{user_id_session}}</p>
+	<div class="row">
+		<div class="col-md-1"></div>
+			<div class="col-md-10 restaurant-list">
+				<p>Proposal {{advert.id}}: {{advert.name}}</p>
+				<p>Meal Type: {{advert.meal_type}}</p>
+				<p>Meal Time: {{advert.meal_time}}</p>
+				<p>Address: {{advert.address}}</p>
+				<p>Creator: {{advert.creator}}, ID: {{user_id_session}}</p>
+				<p>Attendee: {{advert.attendee}}</p>
+				<a href="{{url_for('joinAdvert', advert_id = advert.id)}}" > Join Proposal </a></p>
+				<a href="{{url_for('acceptAdvert', advert_id = advert.id)}}" > Join Proposal </a></p>
+			</div>
+			<div class="col-md-1"></div>
+		</div>
 	{% endfor %}
 {% endblock %}

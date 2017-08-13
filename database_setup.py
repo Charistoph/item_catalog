@@ -32,6 +32,7 @@ class Advert(Base):
     user = relationship(User)
     creator = Column(String(250))
     attendee = Column(String(250))
+    accept_attendee = Column(String(250))
 
     @property
     def serialize(self):
