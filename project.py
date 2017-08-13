@@ -238,15 +238,28 @@ def newAdvert():
 def editAdvert(advert_id):
     editedAdvert = session.query(
         Advert).filter_by(id=advert_id).one()
+    deleteAdvert = session.query(
+        Advert).filter_by(id=advert_id).one()
     if 'username' not in login_session:
         return redirect('/login')
     if editedAdvert.user_id != login_session['user_id']:
         return "<script>function myFunction() {alert('You are not authorized to edit this advert. Please create your own advert in order to edit.');}</script><body onload='myFunction()''>"
     if request.method == 'POST':
-        if request.form['name']:
-            editedAdvert.name = request.form['name']
-            flash('Advert Successfully Edited %s' % editedAdvert.name)
-            return redirect(url_for('showAdverts'))
+        if request.form['location']:
+            editedAdvert.location = request.form['location']
+        if request.form['meal_type']:
+            editedAdvert.meal_type = request.form['meal_type']
+        if request.form['meal_time']:
+            editedAdvert.meal_time = request.form['meal_time']
+        advert_info = findARestaurant(editedAdvert.meal_type, editedAdvert.location)
+        if advert_info != "No Restaurants Found":
+            editedAdvert = Advert(address = unicode(advert_info['address']), name = unicode(advert_info['name']), meal_type = editedAdvert.meal_type, meal_time = editedAdvert.meal_time, user_id = login_session['user_id'], creator = login_session['username'])
+        session.add(editedAdvert)
+        session.commit()
+        session.delete(deleteAdvert)
+        session.commit()
+        flash('Advert Successfully Edited')
+        return redirect(url_for('showAdverts'))
     else:
         return render_template('editAdvert.html', advert=editedAdvert)
 
@@ -268,85 +281,9 @@ def deleteAdvert(advert_id):
     else:
         return render_template('deleteAdvert.html', advert=advertToDelete)
 
-## Show a restaurant menu
-#
-#
-#@app.route('/restaurant/<int:advert_id>/')
-#@app.route('/restaurant/<int:advert_id>/menu/')
-#def showMenu(advert_id):
-#    restaurant = session.query(Restaurant).filter_by(id=advert_id).one()
-#    creator = getUserInfo(restaurant.user_id)
-#    items = session.query(MenuItem).filter_by(
-#        advert_id=advert_id).all()
-#    if 'username' not in login_session or creator.id != login_session['user_id']:
-#        return render_template('publicmenu.html', items=items, restaurant=restaurant, creator=creator)
-#    else:
-#        return render_template('menu.html', items=items, restaurant=restaurant, creator=creator)
-#
-#
-## Create a new menu item
-#@app.route('/restaurant/<int:restaurant_id>/menu/new/', methods=['GET', 'POST'])
-#def newMenuItem(restaurant_id):
-#    if 'username' not in login_session:
-#        return redirect('/login')
-#    restaurant = session.query(Restaurant).filter_by(id=restaurant_id).one()
-#    if login_session['user_id'] != restaurant.user_id:
-#        return "<script>function myFunction() {alert('You are not authorized to add menu items to this restaurant. Please create your own restaurant in order to add items.');}</script><body onload='myFunction()''>"
-#    if request.method == 'POST':
-#        newItem = MenuItem(name=request.form['name'], description=request.form['description'], price=request.form[
-#                           'price'], course=request.form['course'], restaurant_id=restaurant_id, user_id=restaurant.user_id)
-#        session.add(newItem)
-#        session.commit()
-#        flash('New Menu %s Item Successfully Created' % (newItem.name))
-#        return redirect(url_for('showMenu', restaurant_id=restaurant_id))
-#    else:
-#        return render_template('newmenuitem.html', restaurant_id=restaurant_id)
-#
-## Edit a menu item
-#
-#
-#@app.route('/restaurant/<int:restaurant_id>/menu/<int:menu_id>/edit', methods=['GET', 'POST'])
-#def editMenuItem(restaurant_id, menu_id):
-#    if 'username' not in login_session:
-#        return redirect('/login')
-#    editedItem = session.query(MenuItem).filter_by(id=menu_id).one()
-#    restaurant = session.query(Restaurant).filter_by(id=restaurant_id).one()
-#    if login_session['user_id'] != restaurant.user_id:
-#        return "<script>function myFunction() {alert('You are not authorized to edit menu items to this restaurant. Please create your own restaurant in order to edit items.');}</script><body onload='myFunction()''>"
-#    if request.method == 'POST':
-#        if request.form['name']:
-#            editedItem.name = request.form['name']
-#        if request.form['description']:
-#            editedItem.description = request.form['description']
-#        if request.form['price']:
-#            editedItem.price = request.form['price']
-#        if request.form['course']:
-#            editedItem.course = request.form['course']
-#        session.add(editedItem)
-#        session.commit()
-#        flash('Menu Item Successfully Edited')
-#        return redirect(url_for('showMenu', restaurant_id=restaurant_id))
-#    else:
-#        return render_template('editmenuitem.html', restaurant_id=restaurant_id, menu_id=menu_id, item=editedItem)
-#
-#
-## Delete a menu item
-#@app.route('/restaurant/<int:restaurant_id>/menu/<int:menu_id>/delete', methods=['GET', 'POST'])
-#def deleteMenuItem(restaurant_id, menu_id):
-#    if 'username' not in login_session:
-#        return redirect('/login')
-#    restaurant = session.query(Restaurant).filter_by(id=restaurant_id).one()
-#    itemToDelete = session.query(MenuItem).filter_by(id=menu_id).one()
-#    if login_session['user_id'] != restaurant.user_id:
-#        return "<script>function myFunction() {alert('You are not authorized to delete menu items to this restaurant. Please create your own restaurant in order to delete items.');}</script><body onload='myFunction()''>"
-#    if request.method == 'POST':
-#        session.delete(itemToDelete)
-#        session.commit()
-#        flash('Menu Item Successfully Deleted')
-#        return redirect(url_for('showMenu', restaurant_id=restaurant_id))
-#    else:
-#        return render_template('deleteMenuItem.html', item=itemToDelete)
 
+#-------------------------------------------------------------------------------
+# Main
 
 if __name__ == '__main__':
     app.secret_key = 'super_secret_key'
