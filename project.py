@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
-from flask import Flask, render_template, request, redirect, jsonify, url_for, flash
+from flask import Flask, render_template, g, request, redirect, jsonify, url_for, flash, abort, make_response
+from flask import session as login_session
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine, asc
 from sqlalchemy.orm import relationship, sessionmaker
 from findARestaurant import findARestaurant
 from database_setup import Base, Advert, User
-from flask import session as login_session
 import random, string, sys, codecs
 from oauth2client.client import flow_from_clientsecrets
 from oauth2client.client import FlowExchangeError
 import httplib2
 import json
-from flask import make_response
 import requests
 from redis import Redis
 import time
@@ -31,11 +30,79 @@ Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 session = DBSession()
 
+
+#-------------------------------------------------------------------------------
+# Rate Limiting Class & Decorator
+# START redis-server for this to work!!
+
+redis = Redis()
+
+# Check redis-server status
+try:
+    response = redis.client_list()
+    print "Status: redis-server running!"
+except redis.ConnectionError:
+    print "ERROR: redis-server not running! Use redis-server in bash!"
+
+class RateLimit(object):
+    expiration_window = 10
+
+    def __init__(self, key_prefix, limit, per, send_x_headers):
+        self.reset = (int(time.time()) // per) * per + per
+        self.key = key_prefix + str(self.reset)
+        self.limit = limit
+        self.per = per
+        self.send_x_headers = send_x_headers
+        p = redis.pipeline()
+        p.incr(self.key)
+        p.expireat(self.key, self.reset + self.expiration_window)
+        self.current = min(p.execute()[0], limit)
+
+    remaining = property(lambda x: x.limit - x.current)
+    over_limit = property(lambda x: x.current >= x.limit)
+
+
+def get_view_rate_limit():
+    return getattr(g, '_view_rate_limit', None)
+
+
+def on_over_limit(limit):
+    return (jsonify({'data':'You hit the rate limit','error':'429'}),429)
+
+
+def ratelimit(limit, per=300, send_x_headers=True,
+              over_limit=on_over_limit,
+              scope_func=lambda: request.remote_addr,
+              key_func=lambda: request.endpoint):
+    def decorator(f):
+        def rate_limited(*args, **kwargs):
+            key = 'rate-limit/%s/%s/' % (key_func(), scope_func())
+            rlimit = RateLimit(key, limit, per, send_x_headers)
+            g._view_rate_limit = rlimit
+            if over_limit is not None and rlimit.over_limit:
+                return over_limit(rlimit)
+            return f(*args, **kwargs)
+        return update_wrapper(rate_limited, f)
+    return decorator
+
+
+@app.after_request
+def inject_x_rate_headers(response):
+    limit = get_view_rate_limit()
+    if limit and limit.send_x_headers:
+        h = response.headers
+        h.add('X-RateLimit-Remaining', str(limit.remaining))
+        h.add('X-RateLimit-Limit', str(limit.limit))
+        h.add('X-RateLimit-Reset', str(limit.reset))
+    return response
+
+
 #-------------------------------------------------------------------------------
 # Login Code
 
 # Create anti-forgery state token
 @app.route('/login')
+@ratelimit(limit=300, per=30 * 1)
 def showLogin():
     state = ''.join(
         random.choice(string.ascii_uppercase + string.digits) for x in range(32))
@@ -45,6 +112,7 @@ def showLogin():
 
 
 @app.route('/gconnect', methods=['POST'])
+@ratelimit(limit=300, per=30 * 1)
 def gconnect():
     # Validate state token
     if request.args.get('state') != login_session['state']:
@@ -165,6 +233,7 @@ def getUserID(email):
 
 
 @app.route('/gdisconnect')
+@ratelimit(limit=300, per=30 * 1)
 def gdisconnect():
         # Only disconnect a connected user.
     access_token = login_session.get('access_token')
@@ -201,6 +270,7 @@ def gdisconnect():
 # Show all adverts
 @app.route('/')
 @app.route('/advert/')
+@ratelimit(limit=300, per=30 * 1)
 def showAdverts():
     adverts = session.query(Advert).order_by(asc(Advert.name))
     if 'username' not in login_session:
@@ -212,6 +282,7 @@ def showAdverts():
 
 
 @app.route('/advert/new/', methods=['GET', 'POST'])
+@ratelimit(limit=300, per=30 * 1)
 def newAdvert():
     if 'username' not in login_session:
         return redirect('/login')
@@ -234,6 +305,7 @@ def newAdvert():
 
 # Edit a advert
 @app.route('/advert/<int:advert_id>/edit/', methods=['GET', 'POST'])
+@ratelimit(limit=300, per=30 * 1)
 def editAdvert(advert_id):
     editedAdvert = session.query(
         Advert).filter_by(id=advert_id).one()
@@ -265,6 +337,7 @@ def editAdvert(advert_id):
 
 # Delete a advert
 @app.route('/advert/<int:advert_id>/delete/', methods=['GET', 'POST'])
+@ratelimit(limit=300, per=30 * 1)
 def deleteAdvert(advert_id):
     advertToDelete = session.query(
         Advert).filter_by(id=advert_id).one()
@@ -283,6 +356,7 @@ def deleteAdvert(advert_id):
 
 # Join a advert
 @app.route('/advert/<int:advert_id>/join/', methods=['GET', 'POST'])
+@ratelimit(limit=300, per=30 * 1)
 def joinAdvert(advert_id):
     editedAdvert = session.query(
         Advert).filter_by(id=advert_id).one()
@@ -305,6 +379,7 @@ def joinAdvert(advert_id):
 
 # Accept a join proposal
 @app.route('/advert/<int:advert_id>/accept/', methods=['GET', 'POST'])
+@ratelimit(limit=300, per=30 * 1)
 def acceptAdvert(advert_id):
     editedAdvert = session.query(
         Advert).filter_by(id=advert_id).one()
