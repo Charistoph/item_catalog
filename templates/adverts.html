@@ -60,7 +60,7 @@
 					<a href="{{url_for('deleteAdvert', advert_id = advert.id)}}" > Delete Proposal </a>
 					<a href="{{url_for('acceptAdvert', advert_id = advert.id)}}" > Accept Proposal </a></p>
 				{% endif%}
-				{% if advert.user_id == user_id_session %}
+				{% if advert.user_id != user_id_session %}
 					<p>You are authorized to: </p>
 					<p><a href="{{url_for('joinAdvert', advert_id = advert.id)}}" > Join Proposal </a></p>
 				{% endif%}

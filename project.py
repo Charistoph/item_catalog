@@ -20,7 +20,7 @@ app = Flask(__name__)
 
 CLIENT_ID = json.loads(
     open('client_secrets.json', 'r').read())['web']['client_id']
-APPLICATION_NAME = "Restaurant Rendezvous Application"
+APPLICATION_NAME = "Meet N' Greet"
 
 
 # Connect to Database and create database session
@@ -365,7 +365,7 @@ def joinAdvert(advert_id):
     if 'username' not in login_session:
         return redirect('/login')
     # not really needed, just for safety.
-    if editedAdvert.user_id != login_session['user_id']:
+    if editedAdvert.user_id == login_session['user_id']:
         return "<script>function myFunction() {alert('You cannot join your own proposal');}</script><body onload='myFunction()''>"
     if request.method == 'POST':
         editedAdvert.attendee = login_session['username']
@@ -389,7 +389,7 @@ def acceptAdvert(advert_id):
         return redirect('/login')
     # not really needed, just for safety.
     if editedAdvert.user_id != login_session['user_id']:
-        return "<script>function myFunction() {alert('You cannot join your own proposal');}</script><body onload='myFunction()''>"
+        return "<script>function myFunction() {alert('You cannot accept this proposal');}</script><body onload='myFunction()''>"
     if request.method == 'POST':
         editedAdvert.accept_attendee = "Yes"
         session.add(editedAdvert)
