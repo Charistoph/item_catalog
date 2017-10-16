@@ -29,9 +29,27 @@ In shell use `python project.py`
 
 * Open a webbrowser of your choice and visit localhost:5000
 
+# Python libaries you might need
+
+I had to install the following:
+
+* **sudo pip install flask**
+
+* **sudo pip install sqlalchemy**
+
+* **sudo pip install httplib2**
+
+* **sudo pip install passlib**
+
+* **sudo pip install oauth2client**
+
+* **sudo pip install requests**
+
+* **sudo pip install redis**
+
 # What can you do at Meet N' Eat?
 
-* Login and Logout
+* Login and Logout with google.
 
 * Add, edit and delete proposals to go eat in a restaurant.
 
