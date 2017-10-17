@@ -46,7 +46,7 @@ class Advert(Base):
         }
 
 
-engine = create_engine('sqlite:///advert.db')
+engine = create_engine('sqlite:///catalog.db')
 
 
 Base.metadata.create_all(engine)

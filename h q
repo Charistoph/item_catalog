@@ -1,0 +1,25 @@
+* [33m5446274[m[33m ([m[1;32mdev[m[33m)[m mend
+* [33m8eaed86[m changes for final project
+* [33mb271f32[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mthisworks[m[33m, [m[1;31morigin/dev[m[33m)[m Readme Changes
+* [33m8b491b3[m README added
+* [33m9e220dd[m Added rate limiting
+* [33mff36023[m Join and Accept CRUD & html added
+* [33m25af8d2[m EditAdvert fixed
+* [33mbb4453d[m This branch should work
+[31m|[m *   [33m1741aab[m[33m ([m[1;32mmaster[m[33m)[m Merge commit '927df2a'
+[31m|[m [32m|[m[31m\[m  
+[31m|[m [32m|[m[31m/[m  
+[31m|[m[31m/[m[32m|[m   
+* [32m|[m [33m927df2a[m Fixed new & edit error
+[33m|[m * [33m15a2c16[m OAuth CRUD in progress
+[33m|[m *   [33m9be025b[m Merge branch 'test'
+[33m|[m [34m|[m[35m\[m  
+[33m|[m [34m|[m * [33mfbd1308[m[33m ([m[1;32mtest[m[33m)[m Fixed new & edit error
+[33m|[m [34m|[m[33m/[m  
+[33m|[m[33m/[m[34m|[m   
+[33m|[m * [33mdb16ebc[m Not working
+[33m|[m[33m/[m  
+* [33m7ddda0e[m Added API functionality to create advert
+* [33m03d6124[m Google maps & Foursquare APIs added
+* [33m7d8275d[m Added basic CRUD for adverts
+* [33m7353c09[m Initial Commit, glogin/logout, restaurant app
