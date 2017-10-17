@@ -24,7 +24,7 @@ APPLICATION_NAME = "Meet N' Greet"
 
 
 # Connect to Database and create database session
-engine = create_engine('sqlite:///advert.db')
+engine = create_engine('sqlite:///catalog.db')
 Base.metadata.bind = engine
 
 DBSession = sessionmaker(bind=engine)
