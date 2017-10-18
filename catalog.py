@@ -16,51 +16,89 @@ from redis import Redis
 import time
 from functools import update_wrapper
 
+# old
+#app = Flask(__name__)
+
+
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, current_user
+# allow http transport
+# (https requires ssl keys, not good for local testing)
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+
+# init flask app
 app = Flask(__name__)
 
-CLIENT_ID = json.loads(
-    open('client_secrets.json', 'r').read())['web']['client_id']
-APPLICATION_NAME = "Meet N' Greet"
+# default values
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# set database uri for SQLAlchemy
+if os.environ.get('DB_URI') is not None:
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DB_URI')
+else:
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' \
+        + os.path.join(basedir, '../database.sqlite3')
+
+app.config['CSRF_ENABLED'] = True
+app.secret_key = 'no one can guess this'
+# enable debug for auto reloads
+app.debug = True
+
+# login manager
+login_manager = LoginManager(app)
+login_manager.login_view = "login"
+
+# database
+db = SQLAlchemy(app)
 
 
-# Connect to Database and create database session
-engine = create_engine('sqlite:///catalog.db')
-Base.metadata.bind = engine
 
-DBSession = sessionmaker(bind=engine)
-session = DBSession()
+# old
 
-
-#-------------------------------------------------------------------------------
+#CLIENT_ID = json.loads(
+#    open('client_secrets.json', 'r').read())['web']['client_id']
+#APPLICATION_NAME = "Meet N' Greet"
+#
+#
+## Connect to Database and create database session
+#engine = create_engine('sqlite:///catalog.db')
+#Base.metadata.bind = engine
+#
+#DBSession = sessionmaker(bind=engine)
+#session = DBSession()
+#
+#
+##-------------------------------------------------------------------------------
 # Rate Limiting Class & Decorator
 # START redis-server for this to work!!
-
-redis = Redis()
-
-# Check redis-server status
-try:
-    response = redis.client_list()
-    print "Status: redis-server running!"
-except redis.ConnectionError:
-    print "ERROR: redis-server not running! Use redis-server in bash!"
-
-class RateLimit(object):
-    expiration_window = 10
-
-    def __init__(self, key_prefix, limit, per, send_x_headers):
-        self.reset = (int(time.time()) // per) * per + per
-        self.key = key_prefix + str(self.reset)
-        self.limit = limit
-        self.per = per
-        self.send_x_headers = send_x_headers
-        p = redis.pipeline()
-        p.incr(self.key)
-        p.expireat(self.key, self.reset + self.expiration_window)
-        self.current = min(p.execute()[0], limit)
-
-    remaining = property(lambda x: x.limit - x.current)
-    over_limit = property(lambda x: x.current >= x.limit)
-
+#
+#redis = Redis()
+#
+## Check redis-server status
+#try:
+#    response = redis.client_list()
+#    print "Status: redis-server running!"
+#except redis.ConnectionError:
+#    print "ERROR: redis-server not running! Use redis-server in bash!"
+#
+#class RateLimit(object):
+#    expiration_window = 10
+#
+#    def __init__(self, key_prefix, limit, per, send_x_headers):
+#        self.reset = (int(time.time()) // per) * per + per
+#        self.key = key_prefix + str(self.reset)
+#        self.limit = limit
+#        self.per = per
+#        self.send_x_headers = send_x_headers
+#        p = redis.pipeline()
+#        p.incr(self.key)
+#        p.expireat(self.key, self.reset + self.expiration_window)
+#        self.current = min(p.execute()[0], limit)
+#
+#    remaining = property(lambda x: x.limit - x.current)
+#    over_limit = property(lambda x: x.current >= x.limit)
+#
 
 def get_view_rate_limit():
     return getattr(g, '_view_rate_limit', None)
