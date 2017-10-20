@@ -15,6 +15,7 @@ import requests
 from redis import Redis
 import time
 from functools import update_wrapper
+import os
 
 # old
 #app = Flask(__name__)
@@ -37,17 +38,18 @@ if os.environ.get('DB_URI') is not None:
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DB_URI')
 else:
     basedir = os.path.abspath(os.path.dirname(__file__))
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' \
-        + os.path.join(basedir, '../database.sqlite3')
+    app.config['SQLALCHEMY_DATABASE_URI'] = (
+    'postgresql://'
+    'catalog:password@localhost/catalog')
 
 app.config['CSRF_ENABLED'] = True
-app.secret_key = 'no one can guess this'
+app.secret_key = 'super_secret_key'
 # enable debug for auto reloads
 app.debug = True
 
 # login manager
-login_manager = LoginManager(app)
-login_manager.login_view = "login"
+#login_manager = LoginManager(app)
+#login_manager.login_view = "login"
 
 # database
 db = SQLAlchemy(app)
@@ -56,17 +58,17 @@ db = SQLAlchemy(app)
 
 # old
 
-#CLIENT_ID = json.loads(
-#    open('client_secrets.json', 'r').read())['web']['client_id']
-#APPLICATION_NAME = "Meet N' Greet"
-#
-#
+CLIENT_ID = json.loads(
+    open('/var/www/catalog/client_secrets.json', 'r').read())['web']['client_id']
+APPLICATION_NAME = "Meet N' Greet"
+
+
 ## Connect to Database and create database session
-#engine = create_engine('sqlite:///catalog.db')
-#Base.metadata.bind = engine
-#
-#DBSession = sessionmaker(bind=engine)
-#session = DBSession()
+engine = create_engine('postgresql://catalog:password@localhost/catalog')
+Base.metadata.bind = engine
+
+DBSession = sessionmaker(bind=engine)
+session = DBSession()
 #
 #
 ##-------------------------------------------------------------------------------
@@ -100,39 +102,39 @@ db = SQLAlchemy(app)
 #    over_limit = property(lambda x: x.current >= x.limit)
 #
 
-def get_view_rate_limit():
-    return getattr(g, '_view_rate_limit', None)
-
-
-def on_over_limit(limit):
-    return (jsonify({'data':'You hit the rate limit','error':'429'}),429)
-
-
-def ratelimit(limit, per=300, send_x_headers=True,
-              over_limit=on_over_limit,
-              scope_func=lambda: request.remote_addr,
-              key_func=lambda: request.endpoint):
-    def decorator(f):
-        def rate_limited(*args, **kwargs):
-            key = 'rate-limit/%s/%s/' % (key_func(), scope_func())
-            rlimit = RateLimit(key, limit, per, send_x_headers)
-            g._view_rate_limit = rlimit
-            if over_limit is not None and rlimit.over_limit:
-                return over_limit(rlimit)
-            return f(*args, **kwargs)
-        return update_wrapper(rate_limited, f)
-    return decorator
-
-
-@app.after_request
-def inject_x_rate_headers(response):
-    limit = get_view_rate_limit()
-    if limit and limit.send_x_headers:
-        h = response.headers
-        h.add('X-RateLimit-Remaining', str(limit.remaining))
-        h.add('X-RateLimit-Limit', str(limit.limit))
-        h.add('X-RateLimit-Reset', str(limit.reset))
-    return response
+#def get_view_rate_limit():
+#    return getattr(g, '_view_rate_limit', None)
+#
+#
+#def on_over_limit(limit):
+#    return (jsonify({'data':'You hit the rate limit','error':'429'}),429)
+#
+#
+#def ratelimit(limit, per=300, send_x_headers=True,
+#              over_limit=on_over_limit,
+#              scope_func=lambda: request.remote_addr,
+#              key_func=lambda: request.endpoint):
+#    def decorator(f):
+ ##       def rate_limited(*args, **kwargs):
+ #           key = 'rate-limit/%s/%s/' % (key_func(), scope_func())
+#            rlimit = RateLimit(key, limit, per, send_x_headers)
+#            g._view_rate_limit = rlimit
+#            if over_limit is not None and rlimit.over_limit:
+#                return over_limit(rlimit)
+#            return f(*args, **kwargs)
+#        return update_wrapper(rate_limited, f)
+#    return decorator
+#
+#
+#@app.after_request
+#def inject_x_rate_headers(response):
+#    limit = get_view_rate_limit()
+#    if limit and limit.send_x_headers:
+#        h = response.headers
+#        h.add('X-RateLimit-Remaining', str(limit.remaining))
+#        h.add('X-RateLimit-Limit', str(limit.limit))
+#        h.add('X-RateLimit-Reset', str(limit.reset))
+#    return response
 
 
 #-------------------------------------------------------------------------------
@@ -140,7 +142,7 @@ def inject_x_rate_headers(response):
 
 # Create anti-forgery state token
 @app.route('/login')
-@ratelimit(limit=300, per=30 * 1)
+#@ratelimit(limit=300, per=30 * 1)
 def showLogin():
     state = ''.join(
         random.choice(string.ascii_uppercase + string.digits) for x in range(32))
@@ -150,7 +152,7 @@ def showLogin():
 
 
 @app.route('/gconnect', methods=['POST'])
-@ratelimit(limit=300, per=30 * 1)
+#@ratelimit(limit=300, per=30 * 1)
 def gconnect():
     # Validate state token
     if request.args.get('state') != login_session['state']:
@@ -164,7 +166,7 @@ def gconnect():
 
     try:
         # Upgrade the authorization code into a credentials object
-        oauth_flow = flow_from_clientsecrets('client_secrets.json', scope='')
+        oauth_flow = flow_from_clientsecrets('/var/www/catalog/client_secrets.json', scope='')
         oauth_flow.redirect_uri = 'postmessage'
         credentials = oauth_flow.step2_exchange(code)
     except FlowExchangeError:
@@ -180,8 +182,8 @@ def gconnect():
     # Submit request, parse response - Python3 compatible
     h = httplib2.Http()
     response = h.request(url, 'GET')[1]
-    str_response = response.decode('utf-8')
-    result = json.loads(str_response)
+    # str_response = response.decode('utf-8')
+    result = json.loads(response)
 
     # If there was an error in the access token info, abort.
     if result.get('error') is not None:
@@ -271,7 +273,7 @@ def getUserID(email):
 
 
 @app.route('/gdisconnect')
-@ratelimit(limit=300, per=30 * 1)
+#@ratelimit(limit=300, per=30 * 1)
 def gdisconnect():
         # Only disconnect a connected user.
     access_token = login_session.get('access_token')
@@ -308,7 +310,7 @@ def gdisconnect():
 # Show all adverts
 @app.route('/')
 @app.route('/advert/')
-@ratelimit(limit=300, per=30 * 1)
+#@ratelimit(limit=300, per=30 * 1)
 def showAdverts():
     adverts = session.query(Advert).order_by(asc(Advert.name))
     if 'username' not in login_session:
@@ -320,7 +322,7 @@ def showAdverts():
 
 
 @app.route('/advert/new/', methods=['GET', 'POST'])
-@ratelimit(limit=300, per=30 * 1)
+#@ratelimit(limit=300, per=30 * 1)
 def newAdvert():
     if 'username' not in login_session:
         return redirect('/login')
@@ -343,7 +345,7 @@ def newAdvert():
 
 # Edit a advert
 @app.route('/advert/<int:advert_id>/edit/', methods=['GET', 'POST'])
-@ratelimit(limit=300, per=30 * 1)
+#@ratelimit(limit=300, per=30 * 1)
 def editAdvert(advert_id):
     editedAdvert = session.query(
         Advert).filter_by(id=advert_id).one()
@@ -375,7 +377,7 @@ def editAdvert(advert_id):
 
 # Delete a advert
 @app.route('/advert/<int:advert_id>/delete/', methods=['GET', 'POST'])
-@ratelimit(limit=300, per=30 * 1)
+#@ratelimit(limit=300, per=30 * 1)
 def deleteAdvert(advert_id):
     advertToDelete = session.query(
         Advert).filter_by(id=advert_id).one()
@@ -394,7 +396,7 @@ def deleteAdvert(advert_id):
 
 # Join a advert
 @app.route('/advert/<int:advert_id>/join/', methods=['GET', 'POST'])
-@ratelimit(limit=300, per=30 * 1)
+#@ratelimit(limit=300, per=30 * 1)
 def joinAdvert(advert_id):
     editedAdvert = session.query(
         Advert).filter_by(id=advert_id).one()
@@ -417,7 +419,7 @@ def joinAdvert(advert_id):
 
 # Accept a join proposal
 @app.route('/advert/<int:advert_id>/accept/', methods=['GET', 'POST'])
-@ratelimit(limit=300, per=30 * 1)
+#@ratelimit(limit=300, per=30 * 1)
 def acceptAdvert(advert_id):
     editedAdvert = session.query(
         Advert).filter_by(id=advert_id).one()
@@ -441,9 +443,9 @@ def acceptAdvert(advert_id):
 #-------------------------------------------------------------------------------
 # Main
 
-if __name__ == '__main__':
-    app.secret_key = 'super_secret_key'
-    app.debug = True
-    app.run(host='0.0.0.0', port=5000)
+#if __name__ == '__main__':
+#    app.secret_key = 'super_secret_key'
+#    app.debug = True
+#    app.run(host='0.0.0.0', port=5000)
 # Test APIs
 #    findARestaurant("Pizza", "Tokyo, Japan")
